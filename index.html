@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PIS Tests — theo dõi bài kiểm tra và tiến độ theo từng học sinh.">
+  <meta name="theme-color" content="#073b4c">
+  <title>PIS Tests | Student Progress Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="PIS Tests trang chủ">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span>
+          <strong>PIS Tests</strong>
+          <small>Student Progress Tracker</small>
+        </span>
+      </a>
+      <div class="topbar-meta">
+        <span class="status-pill"><i></i> Hệ thống đã liên kết</span>
+        <span class="teacher-pill">Giáo viên: Mr. Hà Chí Thanh</span>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">PIS CLASS · TEST MANAGEMENT</p>
+        <h1 id="page-title">Theo dõi tiến độ theo từng học sinh</h1>
+        <p>Chọn một học sinh để xem toàn bộ báo cáo bài test và bảng tổng điểm cá nhân.</p>
+      </div>
+      <div class="hero-badge" aria-hidden="true">
+        <span id="hero-student-count">0</span>
+        <small>học sinh</small>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <aside class="student-panel" aria-label="Danh sách học sinh">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">DANH SÁCH A–Z</p>
+            <h2>Học sinh</h2>
+          </div>
+          <span class="count-badge" id="student-count">0</span>
+        </div>
+
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">Tìm học sinh</span>
+          <input id="student-search" type="search" placeholder="Tìm tên hoặc nickname…" autocomplete="off">
+        </label>
+
+        <div id="student-list" class="student-list" role="listbox" aria-label="Chọn học sinh"></div>
+      </aside>
+
+      <section class="profile-panel" aria-live="polite">
+        <div id="loading-state" class="loading-state">
+          <span class="loader" aria-hidden="true"></span>
+          <p>Đang tải dữ liệu lớp…</p>
+        </div>
+
+        <div id="profile-content" hidden>
+          <div class="profile-header">
+            <div class="profile-avatar" id="profile-avatar" aria-hidden="true">PIS</div>
+            <div class="profile-copy">
+              <p class="section-kicker">HỒ SƠ HỌC SINH</p>
+              <h2 id="profile-name">—</h2>
+              <p id="profile-nickname">—</p>
+            </div>
+            <div class="profile-stats" aria-label="Tóm tắt kết quả">
+              <div><strong id="profile-tests">0</strong><span>Bài đã làm</span></div>
+              <div><strong id="profile-average">—</strong><span>Điểm TB</span></div>
+              <div><strong id="profile-best">—</strong><span>Cao nhất</span></div>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Thông tin hồ sơ">
+            <button id="tab-reports" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="reports-panel" data-tab="reports">
+              Báo cáo từng bài test
+            </button>
+            <button id="tab-total" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="total-panel" data-tab="total">
+              Tổng điểm tất cả bài
+            </button>
+          </div>
+
+          <section id="reports-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-reports">
+            <div class="content-heading">
+              <div>
+                <h3>Lịch sử làm bài</h3>
+                <p>Tất cả các lần nộp bài sẽ được sắp xếp từ mới nhất đến cũ nhất.</p>
+              </div>
+            </div>
+            <div id="reports-content"></div>
+          </section>
+
+          <section id="total-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-total" hidden>
+            <div class="content-heading">
+              <div>
+                <h3>Bảng tổng điểm</h3>
+                <p>Tổng hợp kết quả cao nhất của từng bài test trong hồ sơ.</p>
+              </div>
+            </div>
+            <div id="total-content"></div>
+          </section>
+        </div>
+
+        <div id="error-state" class="error-state" hidden>
+          <span aria-hidden="true">!</span>
+          <h2>Không thể tải dữ liệu</h2>
+          <p>Vui lòng tải lại trang hoặc kiểm tra các tệp dữ liệu trong repository.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>PIS Tests · Teacher Dashboard</span>
+      <span>Khung theo dõi đã sẵn sàng để thêm bài test</span>
+    </footer>
+  </div>
+
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
