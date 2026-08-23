@@ -25,6 +25,7 @@ service cloud.firestore {
 
     match /reports/{reportId} {
       allow read: if isTeacher()
+        || (signedIn() && reportId == "unit-1-1-vocab_" + request.auth.uid)
         || (signedIn() && resource.data.uid == request.auth.uid);
 
       // Unit 1.1 is denied here because its protected grading rule is private.
