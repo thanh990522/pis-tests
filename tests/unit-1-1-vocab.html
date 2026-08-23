@@ -19,7 +19,8 @@
     </a>
     <div class="top-actions">
       <span class="identity-pill" id="student-identity">Checking your account…</span>
-      <a class="dashboard-link" href="../index.html">Dashboard</a>
+      <span class="timer-pill" id="timer-display" hidden>10:00</span>
+      <a class="dashboard-link" id="dashboard-link" href="../index.html">Dashboard</a>
     </div>
   </header>
 
@@ -30,7 +31,7 @@
         <h1>Unit 1.1<br><span>Vocabulary Test</span></h1>
         <p>Read carefully, choose one answer for each question, and submit when you are ready.</p>
         <div class="test-meta" aria-label="Test information">
-          <span><b>10</b> questions</span><span><b>10</b> points</span><span><b>1</b> attempt</span>
+          <span><b>10</b> questions</span><span><b>10</b> points</span><span><b>10</b> minutes</span><span><b>1</b> attempt</span>
         </div>
         <p class="teacher-line">Teacher: <strong>Mr. Hà Chí Thanh</strong></p>
       </div>
@@ -60,6 +61,17 @@
     <section class="account-gate" id="account-gate">
       <span class="gate-spinner" aria-hidden="true"></span>
       <div><strong>Preparing your test</strong><p>We are checking your PIS student account.</p></div>
+    </section>
+
+    <section class="fullscreen-lock" id="fullscreen-lock" hidden role="dialog" aria-modal="true" aria-labelledby="fullscreen-lock-title">
+      <div class="lock-panel">
+        <span class="lock-screen-icon" aria-hidden="true">⛶</span>
+        <p class="gold-label">TEST PAUSED</p>
+        <h2 id="fullscreen-lock-title">Return to fullscreen</h2>
+        <p>The test stays blocked until fullscreen is restored. This exit has been recorded for your teacher. The timer continues running.</p>
+        <p class="exit-counter">Recorded exits: <strong id="student-exit-count">0</strong></p>
+        <button class="submit-button" id="return-fullscreen-button" type="button">Return to fullscreen</button>
+      </div>
     </section>
 
     <form id="test-form" hidden>
