@@ -8,6 +8,7 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
@@ -17,16 +18,23 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-const DATA_URLS = { students: "data/students.json", tests: "data/tests.json" };
+const DATA_URLS = {
+  students: "data/students.json",
+  tests: "data/tests.json",
+  featuredTest: "data/unit-1-1-vocab.json",
+  featuredSolutions: "data/unit-1-1-vocab-solutions.json"
+};
 const TEACHER_EMAIL = "hachithanh2251999@gmail.com";
 const STUDENT_EMAIL_DOMAIN = "pis-tests.local";
 const FEATURED_TEST_ID = "unit-1-1-vocab";
 
 const state = {
-  allStudents: [], students: [], tests: [], reports: [],
-  selectedStudentId: null, activeTab: "reports", query: "",
-  role: null, session: null, release: { released: false },
-  unsubscribeReports: null, unsubscribeRelease: null
+  allStudents: [], students: [], tests: [], reports: [], sessions: [],
+  userProfiles: new Map(), selectedStudentId: null, selectedReportId: null,
+  activeTab: "reports", query: "", role: null, session: null,
+  release: { released: false }, teacherReview: null,
+  unsubscribeReports: null, unsubscribeRelease: null,
+  unsubscribeProfiles: null, unsubscribeSessions: null, dashboardTicker: null
 };
 
 const collator = new Intl.Collator("vi", { sensitivity: "base", numeric: true });
@@ -53,6 +61,10 @@ function studentReports(studentId) {
   return state.reports.filter(report => report.studentId === studentId && validReport(report)).sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 }
 
+function studentSessions(studentId) {
+  return state.sessions.filter(session => session.studentId === studentId).sort((a, b) => new Date(b.startedAt || 0) - new Date(a.startedAt || 0));
+}
+
 function testName(testId) {
   return state.tests.find(test => test.id === testId)?.title || "Untitled test";
 }
@@ -62,8 +74,13 @@ function formatScore(report) { return `${Number(report.score).toLocaleString("en
 function formatDuration(seconds) {
   if (!Number.isFinite(Number(seconds))) return "—";
   const minutes = Math.floor(Number(seconds) / 60);
-  const remaining = Number(seconds) % 60;
+  const remaining = Math.max(0, Math.floor(Number(seconds) % 60));
   return `${minutes}m ${String(remaining).padStart(2, "0")}s`;
+}
+
+function timestampToIso(value) {
+  if (value?.toDate) return value.toDate().toISOString();
+  return value || null;
 }
 
 function statsFor(studentId) {
@@ -81,6 +98,21 @@ function setSyncStatus(label, connected = true) {
   const status = el("sync-status");
   status.lastChild.textContent = ` ${label}`;
   status.classList.toggle("offline", !connected);
+}
+
+function refreshStudents() {
+  const merged = state.allStudents.map(student => {
+    const profile = state.userProfiles.get(student.id);
+    return {
+      ...student,
+      ...(profile ? { fullName: profile.fullName || student.fullName, nickname: profile.nickname || null, uid: profile.uid } : {})
+    };
+  }).sort((a, b) => collator.compare(a.fullName, b.fullName));
+  state.students = state.role === "student" ? merged.filter(student => student.id === state.session?.studentId) : merged;
+  el("student-count").textContent = state.students.length;
+  el("hero-student-count").textContent = state.students.length;
+  renderStudentList();
+  renderProfile();
 }
 
 function renderStudentList() {
@@ -116,7 +148,7 @@ function selectStudent(studentId) {
 }
 
 function renderProfile() {
-  const student = state.allStudents.find(item => item.id === state.selectedStudentId);
+  const student = state.students.find(item => item.id === state.selectedStudentId);
   if (!student) return;
   const stats = statsFor(student.id);
   el("profile-avatar").textContent = initials(student.fullName);
@@ -125,9 +157,11 @@ function renderProfile() {
   el("profile-tests").textContent = stats.count;
   el("profile-average").textContent = stats.average === null ? "—" : `${stats.average}%`;
   el("profile-best").textContent = stats.best === null ? "—" : `${stats.best}%`;
+  el("edit-profile-button").disabled = !student.uid;
   renderAvailableTests(student.id);
   renderReports(student.id);
   renderTotals(student.id);
+  renderProctorStatus(student.id);
 }
 
 function emptyState(icon, title, description) {
@@ -142,15 +176,23 @@ function renderAvailableTests(studentId) {
     return;
   }
   const reports = studentReports(studentId);
+  const sessions = studentSessions(studentId);
   container.innerHTML = state.tests.map(test => {
     const report = reports.find(item => item.testId === test.id);
-    const actionLabel = report ? "View result" : "Start test";
+    const activeSession = sessions.find(item => item.testId === test.id && item.status === "in_progress");
+    const actionLabel = report ? "View result" : activeSession ? "Resume test" : "Start test";
+    const status = report ? `Submitted · ${formatScore(report)}` : activeSession ? "In progress · timer running" : "Available now";
     return `<article class="test-card">
       <div class="test-card-icon" aria-hidden="true">Aa</div>
-      <div class="test-card-copy"><span class="test-status ${report ? "complete" : "available"}">${report ? `Submitted · ${formatScore(report)}` : "Available now"}</span><h4>${escapeHtml(test.title)}</h4><p>${escapeHtml(test.description)}</p><small>${test.questions} questions · ${test.points} points · One attempt</small></div>
+      <div class="test-card-copy"><span class="test-status ${report ? "complete" : "available"}">${status}</span><h4>${escapeHtml(test.title)}</h4><p>${escapeHtml(test.description)}</p><small>${test.questions} questions · ${test.points} points · 10 minutes · One attempt</small></div>
       <a class="test-action" href="${escapeHtml(test.path)}">${actionLabel} <span>→</span></a>
     </article>`;
   }).join("");
+}
+
+function reportExitCount(report) {
+  const session = state.sessions.find(item => item.testId === report.testId && item.uid === report.uid);
+  return Math.max(Number(report.details?.exitCount || 0), Number(session?.exitCount || 0));
 }
 
 function renderReports(studentId) {
@@ -160,7 +202,9 @@ function renderReports(studentId) {
     container.innerHTML = emptyState("✓", "No test reports yet", "A new report will appear here automatically after the student submits a test.");
     return;
   }
-  container.innerHTML = `<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Test</th><th>Score</th><th>Percentage</th><th>Time spent</th><th>Submitted</th></tr></thead><tbody>${reports.map(report => `<tr><td><strong>${escapeHtml(testName(report.testId))}</strong></td><td><span class="score-chip">${formatScore(report)}</span></td><td>${percent(report)}%</td><td>${formatDuration(report.durationSeconds)}</td><td>${dateFormatter.format(new Date(report.submittedAt))}</td></tr>`).join("")}</tbody></table></div>`;
+  const actionHeader = state.role === "teacher" ? "<th>Review</th>" : "";
+  container.innerHTML = `<div class="report-table-wrap"><table class="report-table"><thead><tr><th>Test</th><th>Score</th><th>Percentage</th><th>Time spent</th><th>Fullscreen exits</th><th>Submitted</th>${actionHeader}</tr></thead><tbody>${reports.map(report => `<tr><td><strong>${escapeHtml(testName(report.testId))}</strong></td><td><span class="score-chip">${formatScore(report)}</span></td><td>${percent(report)}%</td><td>${formatDuration(report.durationSeconds)}</td><td><span class="exit-chip ${reportExitCount(report) ? "warning" : ""}">${reportExitCount(report)}</span></td><td>${dateFormatter.format(new Date(report.submittedAt))}</td>${state.role === "teacher" ? `<td><button class="table-action" type="button" data-report-id="${escapeHtml(report.id)}">View details</button></td>` : ""}</tr>`).join("")}</tbody></table></div>`;
+  container.querySelectorAll("[data-report-id]").forEach(button => button.addEventListener("click", () => openReportDetail(button.dataset.reportId)));
 }
 
 function renderTotals(studentId) {
@@ -180,6 +224,26 @@ function renderTotals(studentId) {
   const totalScore = bestReports.reduce((sum, report) => sum + Number(report.score), 0);
   const totalMax = bestReports.reduce((sum, report) => sum + Number(report.maxScore), 0);
   container.innerHTML = `<div class="total-summary"><div class="summary-card"><span>Tests completed</span><strong>${bestReports.length}</strong></div><div class="summary-card"><span>Average score</span><strong>${average}%</strong></div><div class="summary-card"><span>Total best score</span><strong>${totalScore}/${totalMax}</strong></div></div><div class="report-table-wrap"><table class="report-table"><thead><tr><th>Test</th><th>Best score</th><th>Percentage</th><th>Attempts</th></tr></thead><tbody>${bestReports.map(report => `<tr><td><strong>${escapeHtml(testName(report.testId))}</strong></td><td><span class="score-chip">${formatScore(report)}</span></td><td>${percent(report)}%</td><td>${reports.filter(item => item.testId === report.testId).length}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderProctorStatus(studentId) {
+  const session = studentSessions(studentId)[0];
+  const title = el("proctor-status-title");
+  const copy = el("proctor-status-content");
+  const card = el("proctor-status-card");
+  if (!session) {
+    title.textContent = "No active test session";
+    copy.textContent = "When this student starts a test, the timer and fullscreen exits will appear here.";
+    card.classList.remove("active", "warning");
+    return;
+  }
+  const deadline = new Date(session.deadlineAt).getTime();
+  const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+  const active = session.status === "in_progress";
+  title.textContent = active ? `${testName(session.testId)} · in progress` : `${testName(session.testId)} · submitted`;
+  copy.textContent = `${active ? `Time remaining: ${formatDuration(remaining)}.` : "Session completed."} Fullscreen/tab exits recorded: ${Number(session.exitCount || 0)}.`;
+  card.classList.toggle("active", active);
+  card.classList.toggle("warning", Number(session.exitCount || 0) > 0);
 }
 
 function renderReleaseControl() {
@@ -204,6 +268,120 @@ async function toggleRelease() {
   } catch (error) {
     console.error(error);
     el("release-status").textContent = "The release setting could not be changed. Please try again.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function base64Bytes(value) {
+  const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, character => character.charCodeAt(0));
+}
+
+async function decryptSolutions(payload, encodedKey) {
+  const key = await crypto.subtle.importKey("raw", base64Bytes(encodedKey), "AES-GCM", false, ["decrypt"]);
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: base64Bytes(payload.iv), tagLength: 128 }, key, base64Bytes(payload.ciphertext));
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+
+async function ensureTeacherReview() {
+  if (state.teacherReview) return state.teacherReview;
+  const [testResponse, solutionResponse, unlockSnapshot] = await Promise.all([
+    fetch(DATA_URLS.featuredTest, { cache: "no-store" }),
+    fetch(DATA_URLS.featuredSolutions, { cache: "no-store" }),
+    getDoc(doc(db, "testUnlocks", FEATURED_TEST_ID))
+  ]);
+  if (!testResponse.ok || !solutionResponse.ok || !unlockSnapshot.exists()) throw new Error("The protected answer review could not be loaded.");
+  const test = await testResponse.json();
+  const solutions = await decryptSolutions(await solutionResponse.json(), unlockSnapshot.data().key);
+  state.teacherReview = { questions: test.sections.flatMap(section => section.questions), solutions: solutions.answers };
+  return state.teacherReview;
+}
+
+async function openReportDetail(reportId) {
+  if (state.role !== "teacher") return;
+  const report = state.reports.find(item => item.id === reportId);
+  if (!report) return;
+  state.selectedReportId = reportId;
+  const student = state.students.find(item => item.id === report.studentId);
+  el("report-detail-title").textContent = `${testName(report.testId)} · ${student?.fullName || report.studentId}`;
+  el("report-detail-summary").innerHTML = `<div class="detail-summary"><div><span>Score</span><strong>${formatScore(report)} · ${percent(report)}%</strong></div><div><span>Time spent</span><strong>${formatDuration(report.durationSeconds)}</strong></div><div><span>Fullscreen exits</span><strong>${reportExitCount(report)}</strong></div><div><span>Submission</span><strong>${report.details?.autoSubmitted ? "Automatic at time limit" : "Submitted by student"}</strong></div></div>`;
+  el("report-detail-questions").innerHTML = "<p class=\"detail-loading\">Loading the protected answer review…</p>";
+  el("report-detail-error").textContent = "";
+  el("report-detail-dialog").showModal();
+  try {
+    if (report.testId !== FEATURED_TEST_ID) throw new Error("Question-level review is not available for this test yet.");
+    const review = await ensureTeacherReview();
+    const answers = report.details?.answers || [];
+    el("report-detail-questions").innerHTML = review.solutions.map((solution, index) => {
+      const question = review.questions[index];
+      const answerIndex = Number.isInteger(answers[index]) ? answers[index] : -1;
+      const correct = answerIndex === solution.correctIndex;
+      const chosen = answerIndex >= 0 ? question.options[answerIndex] : "No answer";
+      return `<article class="detail-question ${correct ? "correct" : "incorrect"}"><header><span>Question ${index + 1}</span><strong>${correct ? "Correct" : "Incorrect"}</strong></header><h3>${escapeHtml(question.prompt)}</h3><p><b>Student answer:</b> ${escapeHtml(chosen)}</p><p><b>Correct answer:</b> ${escapeHtml(solution.answer)}</p><p class="detail-explanation">${escapeHtml(solution.explanation)}</p></article>`;
+    }).join("");
+  } catch (error) {
+    console.error(error);
+    el("report-detail-questions").innerHTML = `<p class="detail-loading">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function deleteSelectedAttempt() {
+  const report = state.reports.find(item => item.id === state.selectedReportId);
+  if (!report || state.role !== "teacher") return;
+  const student = state.students.find(item => item.id === report.studentId);
+  if (!confirm(`Delete this test attempt for ${student?.fullName || report.studentId}? The student will be able to take the test again.`)) return;
+  const button = el("delete-attempt-button");
+  button.disabled = true;
+  el("report-detail-error").textContent = "";
+  try {
+    await Promise.all([
+      deleteDoc(doc(db, "reports", report.id)),
+      deleteDoc(doc(db, "testSessions", `${report.testId}_${report.uid}`))
+    ]);
+    el("report-detail-dialog").close();
+    state.selectedReportId = null;
+  } catch (error) {
+    console.error(error);
+    el("report-detail-error").textContent = "The attempt could not be deleted. Please try again.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function openEditProfile() {
+  const student = state.students.find(item => item.id === state.selectedStudentId);
+  if (!student?.uid || state.role !== "teacher") return;
+  el("edit-full-name").value = student.fullName;
+  el("edit-nickname").value = student.nickname || "";
+  el("edit-profile-error").textContent = "";
+  el("edit-profile-dialog").showModal();
+}
+
+async function handleEditProfile(event) {
+  event.preventDefault();
+  if (event.submitter?.value === "cancel") {
+    el("edit-profile-dialog").close();
+    return;
+  }
+  const student = state.students.find(item => item.id === state.selectedStudentId);
+  const fullName = el("edit-full-name").value.trim();
+  const nickname = el("edit-nickname").value.trim();
+  if (!student?.uid || !fullName) return;
+  const button = el("save-profile-button");
+  button.disabled = true;
+  el("edit-profile-error").textContent = "";
+  try {
+    await setDoc(doc(db, "users", student.uid), {
+      fullName,
+      nickname,
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser.email
+    }, { merge: true });
+    el("edit-profile-dialog").close();
+  } catch (error) {
+    console.error(error);
+    el("edit-profile-error").textContent = "The profile could not be saved. Please try again.";
   } finally {
     button.disabled = false;
   }
@@ -262,18 +440,30 @@ async function handleTeacherLogin(event) {
   catch (error) { el("teacher-login-error").textContent = authMessage(error); }
 }
 
-function bindAuth() {
+function bindUi() {
+  bindTabs();
   document.querySelectorAll("[data-login-tab]").forEach(button => button.addEventListener("click", () => setLoginTab(button.dataset.loginTab)));
   el("student-login-form").addEventListener("submit", handleStudentLogin);
   el("teacher-login-form").addEventListener("submit", handleTeacherLogin);
   el("logout-button").addEventListener("click", () => signOut(auth));
   el("release-toggle").addEventListener("click", toggleRelease);
+  el("student-search").addEventListener("input", event => { state.query = event.target.value; renderStudentList(); });
+  el("edit-profile-button").addEventListener("click", openEditProfile);
+  el("edit-profile-form").addEventListener("submit", handleEditProfile);
+  el("close-report-detail").addEventListener("click", () => el("report-detail-dialog").close());
+  el("done-report-detail").addEventListener("click", () => el("report-detail-dialog").close());
+  el("delete-attempt-button").addEventListener("click", deleteSelectedAttempt);
+}
+
+function stopListeners() {
+  state.unsubscribeReports?.(); state.unsubscribeRelease?.(); state.unsubscribeProfiles?.(); state.unsubscribeSessions?.();
+  state.unsubscribeReports = null; state.unsubscribeRelease = null; state.unsubscribeProfiles = null; state.unsubscribeSessions = null;
+  clearInterval(state.dashboardTicker); state.dashboardTicker = null;
 }
 
 function showLogin() {
-  state.unsubscribeReports?.(); state.unsubscribeRelease?.();
-  state.unsubscribeReports = null; state.unsubscribeRelease = null;
-  state.session = null; state.role = null; state.reports = [];
+  stopListeners();
+  state.session = null; state.role = null; state.reports = []; state.sessions = []; state.userProfiles.clear();
   document.body.classList.remove("student-mode", "teacher-mode");
   el("app-shell").hidden = true;
   el("login-shell").hidden = false;
@@ -281,47 +471,65 @@ function showLogin() {
 }
 
 function startListeners(user) {
-  state.unsubscribeReports?.(); state.unsubscribeRelease?.();
+  stopListeners();
   const reportsRef = collection(db, "reports");
   const reportsQuery = state.role === "teacher" ? reportsRef : query(reportsRef, where("uid", "==", user.uid));
   state.unsubscribeReports = onSnapshot(reportsQuery, snapshot => {
     state.reports = snapshot.docs.map(reportDoc => {
       const data = reportDoc.data();
-      const submittedAt = data.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data.submittedAt;
-      return { id: reportDoc.id, ...data, submittedAt };
+      return { id: reportDoc.id, ...data, submittedAt: timestampToIso(data.submittedAt) };
     });
     setSyncStatus("Synced with Firebase", true);
     renderProfile();
   }, error => { console.error(error); setSyncStatus("Firebase connection lost", false); });
+
+  const sessionsRef = collection(db, "testSessions");
+  const sessionsQuery = state.role === "teacher" ? sessionsRef : query(sessionsRef, where("uid", "==", user.uid));
+  state.unsubscribeSessions = onSnapshot(sessionsQuery, snapshot => {
+    state.sessions = snapshot.docs.map(sessionDoc => ({ id: sessionDoc.id, ...sessionDoc.data() }));
+    renderProfile();
+  }, error => console.error("Test session error", error));
+
+  if (state.role === "teacher") {
+    state.unsubscribeProfiles = onSnapshot(collection(db, "users"), snapshot => {
+      state.userProfiles = new Map(snapshot.docs.map(profileDoc => {
+        const data = profileDoc.data();
+        return [data.studentId, { uid: profileDoc.id, ...data }];
+      }).filter(([studentId, profile]) => studentId && profile.role === "student"));
+      refreshStudents();
+    }, error => console.error("Student profile error", error));
+  }
+
   state.unsubscribeRelease = onSnapshot(doc(db, "testReleases", FEATURED_TEST_ID), snapshot => {
     state.release = snapshot.exists() ? snapshot.data() : { released: false };
     renderReleaseControl();
   }, error => console.error("Release status error", error));
+
+  state.dashboardTicker = setInterval(() => {
+    if (state.selectedStudentId) renderProctorStatus(state.selectedStudentId);
+  }, 1000);
 }
 
 function openApp(user, session) {
-  state.session = session;
+  state.session = { ...session, uid: user.uid };
   state.role = session.role;
   document.body.classList.toggle("student-mode", session.role === "student");
   document.body.classList.toggle("teacher-mode", session.role === "teacher");
   el("login-shell").hidden = true;
   el("app-shell").hidden = false;
-  state.students = [...state.allStudents];
   if (session.role === "student") {
-    const student = state.allStudents.find(item => item.id === session.studentId);
-    if (!student) throw new Error("The student profile does not exist.");
-    state.selectedStudentId = student.id;
-    el("session-label").textContent = student.nickname || student.fullName;
-    el("student-count").textContent = "1";
-    el("hero-student-count").textContent = "1";
+    state.userProfiles.set(session.studentId, { uid: user.uid, ...session.profile });
+    state.selectedStudentId = session.studentId;
+    const base = state.allStudents.find(item => item.id === session.studentId);
+    if (!base) throw new Error("The student profile does not exist.");
+    el("session-label").textContent = session.profile.nickname || base.nickname || session.profile.fullName || base.fullName;
   } else {
     const requestedId = new URLSearchParams(location.hash.replace(/^#/, "")).get("student");
-    state.selectedStudentId = state.students.some(student => student.id === requestedId) ? requestedId : state.students[0]?.id || null;
+    state.selectedStudentId = state.allStudents.some(student => student.id === requestedId) ? requestedId : state.allStudents[0]?.id || null;
     el("session-label").textContent = "Teacher: Mr. Hà Chí Thanh";
-    el("student-count").textContent = state.students.length;
-    el("hero-student-count").textContent = state.students.length;
   }
-  renderStudentList(); renderProfile(); renderReleaseControl();
+  refreshStudents();
+  renderReleaseControl();
   el("loading-state").hidden = true;
   el("profile-content").hidden = false;
   startListeners(user);
@@ -333,7 +541,7 @@ async function resolveSession(user) {
   if (!profileSnapshot.exists()) throw new Error("This account is not linked to a student profile.");
   const profile = profileSnapshot.data();
   if (profile.role !== "student" || !state.allStudents.some(student => student.id === profile.studentId)) throw new Error("The student profile is not valid.");
-  return { role: "student", studentId: profile.studentId };
+  return { role: "student", studentId: profile.studentId, profile };
 }
 
 async function recordReport(payload) {
@@ -353,8 +561,7 @@ async function loadJson(url) {
 }
 
 async function init() {
-  bindAuth(); bindTabs();
-  el("student-search").addEventListener("input", event => { state.query = event.target.value; renderStudentList(); });
+  bindUi();
   try {
     const [studentData, testData] = await Promise.all([loadJson(DATA_URLS.students), loadJson(DATA_URLS.tests)]);
     state.allStudents = [...studentData.students].sort((a, b) => collator.compare(a.fullName, b.fullName));
