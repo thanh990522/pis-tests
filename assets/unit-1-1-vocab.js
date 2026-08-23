@@ -244,7 +244,12 @@ async function openTest(user) {
 
   state.student = await loadStudentProfile(user);
   el("student-identity").textContent = `${state.student.nickname || state.student.fullName} · Level PIS`;
-  const existingReport = await getDoc(reportRef());
+  const [releaseSnapshot, existingReport] = await Promise.all([
+    getDoc(doc(db, "testReleases", TEST_ID)),
+    getDoc(reportRef())
+  ]);
+  if (!releaseSnapshot.exists()) throw new Error("This test is being prepared. Please return when your teacher announces that it is ready.");
+  state.released = releaseSnapshot.data().released === true;
   el("account-gate").hidden = true;
   startReleaseListener();
 
