@@ -4,9 +4,12 @@ Nền tảng theo dõi kết quả kiểm tra theo từng học sinh của lớp
 
 ## Trạng thái hiện tại
 
-- Đã tạo 11 hồ sơ học sinh ẩn danh theo thứ tự danh sách.
+- Đã tạo 11 hồ sơ học sinh theo thứ tự A–Z.
+- Có màn hình đăng nhập riêng cho học sinh và giáo viên.
+- Mã nguồn chỉ lưu bộ xác minh một chiều; không lưu username hoặc mật khẩu dạng rõ.
 - Đã tạo hồ sơ riêng cho từng học sinh.
 - Mỗi hồ sơ có hai tab: `Báo cáo từng bài test` và `Tổng điểm`.
+- Kết quả lưu cục bộ trên trình duyệt, có thể xuất mã nộp bài/file JSON và nhập vào dashboard giáo viên giống `homework-PIS`.
 - Danh mục bài test và báo cáo đang để trống để bổ sung ở các giai đoạn sau.
 - Đã thêm GitHub Pages workflow để tự động triển khai khi nhánh `main` thay đổi.
 
@@ -27,12 +30,31 @@ Mỗi report trong tương lai dùng cấu trúc:
   "maxScore": 10,
   "submittedAt": "2026-08-23T10:00:00+07:00",
   "durationSeconds": 900,
-  "answers": []
+  "details": {}
 }
 ```
 
-## Lưu ý triển khai
+Các trang bài test được thêm sau có thể ghi kết quả bằng API trình duyệt:
 
-GitHub Pages là website tĩnh. Trước khi học sinh làm bài thật, cần kết nối dịch vụ xác thực và cơ sở dữ liệu riêng (ví dụ Firebase) để kết quả từ nhiều thiết bị được lưu an toàn và chỉ giáo viên xem được.
+```js
+window.PISTracker.recordReport({
+  testId: "test-id",
+  score: 8,
+  maxScore: 10,
+  durationSeconds: 900,
+  details: {}
+});
+```
 
-Repository hiện ở chế độ công khai nên mã nguồn không lưu tên thật, nickname hoặc điểm của học sinh. Các dữ liệu nhận diện chỉ nên được nạp từ cơ sở dữ liệu có xác thực hoặc sau khi repository đã được chuyển sang riêng tư.
+## Cách tracking
+
+1. Học sinh đăng nhập và làm bài trên thiết bị của mình.
+2. Kết quả được lưu trong `localStorage` của trình duyệt.
+3. Học sinh tạo mã nộp bài hoặc tải file JSON.
+4. Giáo viên đăng nhập dashboard và nhập mã/file để cập nhật hồ sơ.
+
+## Lưu ý bảo mật
+
+Đây là cơ chế lớp học cục bộ trên GitHub Pages, tương tự `homework-PIS`; không phải hệ thống xác thực máy chủ. Dữ liệu không tự đồng bộ giữa các thiết bị.
+
+Không đưa file danh sách username/mật khẩu dạng rõ lên repository công khai.
