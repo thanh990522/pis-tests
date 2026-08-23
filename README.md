@@ -4,7 +4,7 @@ Nền tảng theo dõi kết quả kiểm tra theo từng học sinh của lớp
 
 ## Trạng thái hiện tại
 
-- Đã tạo danh sách học sinh theo thứ tự bảng chữ cái tiếng Việt.
+- Đã tạo 11 hồ sơ học sinh ẩn danh theo thứ tự danh sách.
 - Đã tạo hồ sơ riêng cho từng học sinh.
 - Mỗi hồ sơ có hai tab: `Báo cáo từng bài test` và `Tổng điểm`.
 - Danh mục bài test và báo cáo đang để trống để bổ sung ở các giai đoạn sau.
@@ -34,3 +34,5 @@ Mỗi report trong tương lai dùng cấu trúc:
 ## Lưu ý triển khai
 
 GitHub Pages là website tĩnh. Trước khi học sinh làm bài thật, cần kết nối dịch vụ xác thực và cơ sở dữ liệu riêng (ví dụ Firebase) để kết quả từ nhiều thiết bị được lưu an toàn và chỉ giáo viên xem được.
+
+Repository hiện ở chế độ công khai nên mã nguồn không lưu tên thật, nickname hoặc điểm của học sinh. Các dữ liệu nhận diện chỉ nên được nạp từ cơ sở dữ liệu có xác thực hoặc sau khi repository đã được chuyển sang riêng tư.
