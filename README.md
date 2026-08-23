@@ -5,10 +5,10 @@ Nền tảng theo dõi kết quả kiểm tra theo từng học sinh của lớp
 ## Trạng thái hiện tại
 
 - Đã tạo 11 hồ sơ học sinh theo thứ tự A–Z.
-- Có màn hình chọn vai trò học sinh/giáo viên; học sinh mở hồ sơ bằng mã `pis-001` đến `pis-011`.
+- Có màn hình chọn vai trò học sinh/giáo viên; học sinh đăng nhập bằng username và mật khẩu Firebase.
 - Đã tạo hồ sơ riêng cho từng học sinh.
 - Mỗi hồ sơ có hai tab: `Báo cáo từng bài test` và `Tổng điểm`.
-- Kết quả lưu cục bộ trên trình duyệt, có thể xuất mã nộp bài/file JSON và nhập vào dashboard giáo viên giống `homework-PIS`.
+- Kết quả được lưu trên Cloud Firestore và tự động xuất hiện trên dashboard giáo viên.
 - Danh mục bài test và báo cáo đang để trống để bổ sung ở các giai đoạn sau.
 - Đã thêm GitHub Pages workflow để tự động triển khai khi nhánh `main` thay đổi.
 
@@ -48,12 +48,9 @@ window.PISTracker.recordReport({
 ## Cách tracking
 
 1. Học sinh đăng nhập và làm bài trên thiết bị của mình.
-2. Kết quả được lưu trong `localStorage` của trình duyệt.
-3. Học sinh tạo mã nộp bài hoặc tải file JSON.
-4. Giáo viên đăng nhập dashboard và nhập mã/file để cập nhật hồ sơ.
+2. Kết quả được ghi vào Cloud Firestore bằng tài khoản Firebase của học sinh.
+3. Dashboard giáo viên nhận report theo thời gian thực.
 
 ## Lưu ý bảo mật
 
-Đây là cơ chế lớp học cục bộ trên GitHub Pages, tương tự `homework-PIS`; không phải hệ thống đăng nhập có máy chủ. Mã hồ sơ chỉ dùng để nhận diện dữ liệu trên thiết bị và dữ liệu không tự đồng bộ giữa các thiết bị.
-
-Không dùng GitHub Pages tĩnh để lưu mật khẩu hoặc dữ liệu bí mật.
+Firebase Web config trong `assets/firebase.js` là cấu hình phía client. Quyền truy cập dữ liệu được kiểm soát bằng Firebase Authentication và Firestore Security Rules; không lưu mật khẩu trong repository.
