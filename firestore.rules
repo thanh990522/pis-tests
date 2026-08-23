@@ -20,7 +20,18 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if isTeacher() || (signedIn() && request.auth.uid == uid);
-      allow write: if false;
+      allow update: if isTeacher()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "fullName", "nickname", "updatedAt", "updatedBy"
+        ])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() <= 100
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() <= 50
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow create, delete: if false;
     }
 
     match /reports/{reportId} {
@@ -50,7 +61,49 @@ service cloud.firestore {
         && request.resource.data.submittedAt is string
         && request.resource.data.createdAt == request.time;
 
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isTeacher();
+    }
+
+    match /testSessions/{sessionId} {
+      allow read: if isTeacher()
+        || (signedIn() && sessionId == "unit-1-1-vocab_" + request.auth.uid)
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && !isTeacher()
+        && sessionId == request.resource.data.testId + "_" + request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          "uid", "studentId", "testId", "status", "startedAt", "deadlineAt",
+          "durationLimitSeconds", "answers", "exitCount", "lastExitReason", "updatedAt"
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.studentId == ownStudentId()
+        && request.resource.data.testId is string
+        && request.resource.data.status == "in_progress"
+        && request.resource.data.startedAt is string
+        && request.resource.data.deadlineAt is string
+        && request.resource.data.durationLimitSeconds == 600
+        && request.resource.data.answers is list
+        && request.resource.data.exitCount == 0
+        && request.resource.data.lastExitReason == ""
+        && request.resource.data.updatedAt == request.time;
+      allow update: if signedIn()
+        && !isTeacher()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.testId == resource.data.testId
+        && request.resource.data.startedAt == resource.data.startedAt
+        && request.resource.data.deadlineAt == resource.data.deadlineAt
+        && request.resource.data.durationLimitSeconds == 600
+        && request.resource.data.answers is list
+        && request.resource.data.exitCount is int
+        && request.resource.data.exitCount >= resource.data.exitCount
+        && request.resource.data.lastExitReason is string
+        && request.resource.data.status in ["in_progress", "submitted"]
+        && (resource.data.status == "in_progress" || request.resource.data.status == "submitted")
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isTeacher();
     }
 
     match /testReleases/{testId} {
