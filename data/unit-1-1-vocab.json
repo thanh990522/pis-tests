@@ -1,0 +1,36 @@
+{
+  "id": "unit-1-1-vocab",
+  "title": "Unit 1.1 Vocabulary Test",
+  "subtitle": "Meaning, spelling, and vocabulary in context",
+  "maxScore": 10,
+  "sections": [
+    {
+      "title": "Meaning in Context",
+      "description": "Choose the option that best explains the highlighted vocabulary.",
+      "questions": [
+        {"prompt": "The hike to the top of the mountain rewarded us with spectacular scenery. What does “spectacular scenery” mean?", "options": ["A crowded city", "A small home", "An industrial area", "Extremely impressive views"]},
+        {"prompt": "The city of Ely has about 10,000 inhabitants. What does “inhabitants” mean?", "options": ["Something people ignore", "People who live in a place", "A city’s crime level", "The opinion people have"]},
+        {"prompt": "There is a shortage of cheap accommodation in the capital. What does “accommodation” mean?", "options": ["A place to stay", "An office building", "A factory", "Public transport"]},
+        {"prompt": "New York is a very culturally diverse city. What does “diverse” mean?", "options": ["Simple", "Quiet", "Varied", "Boring"]}
+      ]
+    },
+    {
+      "title": "Complete the Word",
+      "description": "Choose the missing letters that complete each word correctly.",
+      "questions": [
+        {"prompt": "The city’s total P_PUL_TION is more than one million.", "options": ["O – I", "I – K", "Y – W", "O – A"]},
+        {"prompt": "Many families prefer to live in the S_BUR_S.", "options": ["P – O", "I – O", "U – B", "M – K"]},
+        {"prompt": "The number of tourists INCRE_SED sharply last year.", "options": ["U – I", "A", "I – L", "E"]}
+      ]
+    },
+    {
+      "title": "Vocabulary Choice",
+      "description": "Choose the word or phrase that completes each sentence naturally.",
+      "questions": [
+        {"prompt": "My city has a very low ______.", "options": ["Psychologist", "Crime rate", "Countryside", "Decrease"]},
+        {"prompt": "We stayed in cheap ______ near the city center.", "options": ["Accommodation", "Decrease", "Scenery", "Industrial"]},
+        {"prompt": "New York is a very culturally ______ city.", "options": ["Industrial", "Diverse", "Crowded", "Ancient"]}
+      ]
+    }
+  ]
+}
