@@ -1,0 +1,59 @@
+{
+  "students": [
+    {
+      "id": "pis-001",
+      "fullName": "HỌC SINH PIS 01",
+      "nickname": null
+    },
+    {
+      "id": "pis-002",
+      "fullName": "HỌC SINH PIS 02",
+      "nickname": null
+    },
+    {
+      "id": "pis-003",
+      "fullName": "HỌC SINH PIS 03",
+      "nickname": null
+    },
+    {
+      "id": "pis-004",
+      "fullName": "HỌC SINH PIS 04",
+      "nickname": null
+    },
+    {
+      "id": "pis-005",
+      "fullName": "HỌC SINH PIS 05",
+      "nickname": null
+    },
+    {
+      "id": "pis-006",
+      "fullName": "HỌC SINH PIS 06",
+      "nickname": null
+    },
+    {
+      "id": "pis-007",
+      "fullName": "HỌC SINH PIS 07",
+      "nickname": null
+    },
+    {
+      "id": "pis-008",
+      "fullName": "HỌC SINH PIS 08",
+      "nickname": null
+    },
+    {
+      "id": "pis-009",
+      "fullName": "HỌC SINH PIS 09",
+      "nickname": null
+    },
+    {
+      "id": "pis-010",
+      "fullName": "HỌC SINH PIS 10",
+      "nickname": null
+    },
+    {
+      "id": "pis-011",
+      "fullName": "HỌC SINH PIS 11",
+      "nickname": null
+    }
+  ]
+}
