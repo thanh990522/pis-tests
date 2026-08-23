@@ -20,6 +20,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -35,6 +37,79 @@ body {
 button, input { font: inherit; }
 
 button { color: inherit; }
+
+.login-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(560px, 100%);
+  padding: 34px;
+  border: 1px solid rgba(209, 227, 224, .95);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: var(--shadow);
+}
+
+.login-brand { display: flex; align-items: flex-start; gap: 16px; }
+.login-brand h1 { margin: 0; color: var(--teal-950); font-size: clamp(1.7rem, 4vw, 2.35rem); }
+.login-brand > div > p:last-child { margin: 10px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+
+.login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 26px 0 18px;
+  padding: 6px;
+  border-radius: 15px;
+  background: var(--surface);
+}
+
+.login-tab {
+  padding: 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.login-tab.active { color: var(--teal-950); background: var(--white); box-shadow: 0 5px 16px rgba(7,59,76,.08); }
+
+.login-form { display: grid; gap: 14px; }
+.login-form label, .import-grid label { display: grid; gap: 7px; color: var(--teal-950); font-size: .76rem; font-weight: 700; }
+.login-form input, .import-grid input, .import-grid textarea, .submission-code-box textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.login-form input:focus, .import-grid textarea:focus, .submission-code-box textarea:focus {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px rgba(13,139,139,.12);
+}
+
+.primary-button, .secondary-button, .logout-button {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.primary-button { padding: 13px 16px; color: var(--white); background: var(--teal-950); }
+.primary-button:hover { background: var(--teal-800); }
+.primary-button.compact, .secondary-button { padding: 10px 14px; font-size: .76rem; }
+.secondary-button { color: var(--teal-950); background: var(--teal-100); }
+.logout-button { padding: 9px 12px; color: var(--teal-950); background: var(--yellow-soft); font-size: .74rem; }
+.form-error { min-height: 18px; margin: -4px 0 0; color: var(--danger); font-size: .74rem; font-weight: 700; }
+.local-note { margin: 20px 0 0; padding: 12px 14px; border-radius: 12px; color: var(--muted); background: var(--yellow-soft); font-size: .72rem; line-height: 1.6; }
 
 .sr-only {
   position: absolute;
@@ -268,6 +343,10 @@ button { color: inherit; }
 
 .profile-panel { padding: 30px; }
 
+body.student-mode .workspace { grid-template-columns: minmax(0, 1fr); }
+body.student-mode .student-panel, body.student-mode .teacher-only { display: none !important; }
+body.teacher-mode .student-only { display: none !important; }
+
 .profile-header {
   display: grid;
   grid-template-columns: 84px minmax(0, 1fr) auto;
@@ -297,6 +376,25 @@ button { color: inherit; }
 .profile-stats strong, .profile-stats span { display: block; }
 .profile-stats strong { color: var(--teal-800); font-size: 1.12rem; }
 .profile-stats span { margin-top: 5px; color: var(--muted); font-size: .64rem; }
+
+.handoff-card, .import-card {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 22px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #f8fdfc, #eef8f6);
+}
+
+.handoff-card h3, .import-card h3 { margin: 0; font-size: 1rem; }
+.handoff-card p:not(.section-kicker), .import-card p:not(.section-kicker) { margin: 7px 0 0; color: var(--muted); font-size: .76rem; line-height: 1.6; }
+.handoff-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.submission-code-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; }
+.submission-code-box textarea { min-height: 76px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .68rem; }
+.import-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.import-grid textarea { min-height: 82px; resize: vertical; }
+.import-status { min-height: 18px; margin: 0 !important; font-weight: 700; }
 
 .tabs { display: flex; gap: 6px; padding: 6px; border-radius: 15px; background: var(--surface); }
 .tab-button { flex: 1; padding: 12px 14px; border: 0; border-radius: 11px; background: transparent; cursor: pointer; font-size: .84rem; font-weight: 700; }
@@ -365,6 +463,9 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding: 24px
 }
 
 @media (max-width: 760px) {
+  .login-shell { padding: 12px; }
+  .login-card { padding: 24px 18px; border-radius: 22px; }
+  .login-brand .brand-mark { width: 42px; }
   .app-shell { padding: 0 14px 22px; }
   .topbar { align-items: flex-start; padding: 16px 0; }
   .topbar-meta { display: none; }
@@ -380,5 +481,6 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding: 24px
   .profile-stats div { min-width: 86px; }
   .tabs { flex-direction: column; }
   .total-summary { grid-template-columns: 1fr; }
+  .import-grid, .submission-code-box { grid-template-columns: 1fr; }
   footer { flex-direction: column; }
 }
