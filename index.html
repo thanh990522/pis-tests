@@ -12,7 +12,40 @@
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
-  <div class="app-shell">
+  <main class="login-shell" id="login-shell">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <div>
+          <p class="section-kicker">VIET ANH SCHOOL · LEVEL PIS</p>
+          <h1 id="login-title">Đăng nhập PIS Tests</h1>
+          <p>Kết quả được lưu trên trình duyệt và có thể gửi cho giáo viên bằng mã nộp bài hoặc file JSON.</p>
+        </div>
+      </div>
+
+      <div class="login-tabs" role="tablist" aria-label="Chọn loại tài khoản">
+        <button class="login-tab active" type="button" role="tab" aria-selected="true" data-login-tab="student">🎒 Học sinh</button>
+        <button class="login-tab" type="button" role="tab" aria-selected="false" data-login-tab="teacher">👩‍🏫 Giáo viên</button>
+      </div>
+
+      <form class="login-form" id="student-login-form">
+        <label>Tên đăng nhập<input id="student-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ví dụ: pis.zio"></label>
+        <label>Mật khẩu<input id="student-password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu"></label>
+        <button class="primary-button" type="submit">Đăng nhập để làm bài</button>
+        <p class="form-error" id="student-login-error" role="alert"></p>
+      </form>
+
+      <form class="login-form" id="teacher-login-form" hidden>
+        <label>Mã giáo viên<input id="teacher-password" type="password" autocomplete="current-password" required placeholder="Nhập mã giáo viên"></label>
+        <button class="primary-button" type="submit">Mở dashboard giáo viên</button>
+        <p class="form-error" id="teacher-login-error" role="alert"></p>
+      </form>
+
+      <p class="local-note"><strong>Chế độ cục bộ:</strong> giống `homework-PIS`, dữ liệu không tự đồng bộ giữa các thiết bị.</p>
+    </section>
+  </main>
+
+  <div class="app-shell" id="app-shell" hidden>
     <header class="topbar">
       <a class="brand" href="#" aria-label="PIS Tests trang chủ">
         <span class="brand-mark" aria-hidden="true">P</span>
@@ -23,7 +56,8 @@
       </a>
       <div class="topbar-meta">
         <span class="status-pill"><i></i> Hệ thống đã liên kết</span>
-        <span class="teacher-pill">Giáo viên: Mr. Hà Chí Thanh</span>
+        <span class="teacher-pill" id="session-label">—</span>
+        <button class="logout-button" id="logout-button" type="button">Đăng xuất</button>
       </div>
     </header>
 
@@ -79,6 +113,39 @@
             </div>
           </div>
 
+          <section class="handoff-card student-only" aria-labelledby="handoff-title">
+            <div>
+              <p class="section-kicker">GỬI KẾT QUẢ</p>
+              <h3 id="handoff-title">Nộp dữ liệu cho giáo viên</h3>
+              <p>Sau khi hoàn thành bài test, tạo mã hoặc tải file kết quả để gửi cho giáo viên.</p>
+            </div>
+            <div class="handoff-actions">
+              <button class="secondary-button" id="make-code-button" type="button">Tạo mã nộp bài</button>
+              <button class="primary-button compact" id="download-results-button" type="button">Tải file JSON</button>
+            </div>
+            <div class="submission-code-box" id="submission-code-box" hidden>
+              <textarea id="submission-code" readonly aria-label="Mã nộp bài"></textarea>
+              <button class="secondary-button" id="copy-code-button" type="button">Sao chép mã</button>
+            </div>
+          </section>
+
+          <section class="import-card teacher-only" aria-labelledby="import-title">
+            <div>
+              <p class="section-kicker">NHẬN BÀI TỪ THIẾT BỊ KHÁC</p>
+              <h3 id="import-title">Nhập kết quả học sinh</h3>
+              <p>Dán một hoặc nhiều mã nộp bài, hoặc chọn các file JSON học sinh gửi.</p>
+            </div>
+            <div class="import-grid">
+              <label>File kết quả<input id="result-file-input" type="file" accept=".json,application/json" multiple></label>
+              <label>Mã nộp bài<textarea id="result-code-input" placeholder="Mỗi mã một dòng…"></textarea></label>
+            </div>
+            <div class="handoff-actions">
+              <button class="primary-button compact" id="import-code-button" type="button">Nhập mã</button>
+              <button class="secondary-button" id="clear-imported-button" type="button">Xóa dữ liệu đã nhập</button>
+            </div>
+            <p class="import-status" id="import-status" aria-live="polite"></p>
+          </section>
+
           <div class="tabs" role="tablist" aria-label="Thông tin hồ sơ">
             <button id="tab-reports" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="reports-panel" data-tab="reports">
               Báo cáo từng bài test
@@ -119,7 +186,7 @@
 
     <footer>
       <span>PIS Tests · Teacher Dashboard</span>
-      <span>Khung theo dõi đã sẵn sàng để thêm bài test</span>
+      <span>Tracking cục bộ · Mã nộp bài tương thích mô hình homework-PIS</span>
     </footer>
   </div>
 
