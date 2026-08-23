@@ -5,8 +5,7 @@ Nền tảng theo dõi kết quả kiểm tra theo từng học sinh của lớp
 ## Trạng thái hiện tại
 
 - Đã tạo 11 hồ sơ học sinh theo thứ tự A–Z.
-- Có màn hình đăng nhập riêng cho học sinh và giáo viên.
-- Mã nguồn chỉ lưu bộ xác minh một chiều; không lưu username hoặc mật khẩu dạng rõ.
+- Có màn hình chọn vai trò học sinh/giáo viên; học sinh mở hồ sơ bằng mã `pis-001` đến `pis-011`.
 - Đã tạo hồ sơ riêng cho từng học sinh.
 - Mỗi hồ sơ có hai tab: `Báo cáo từng bài test` và `Tổng điểm`.
 - Kết quả lưu cục bộ trên trình duyệt, có thể xuất mã nộp bài/file JSON và nhập vào dashboard giáo viên giống `homework-PIS`.
@@ -55,6 +54,6 @@ window.PISTracker.recordReport({
 
 ## Lưu ý bảo mật
 
-Đây là cơ chế lớp học cục bộ trên GitHub Pages, tương tự `homework-PIS`; không phải hệ thống xác thực máy chủ. Dữ liệu không tự đồng bộ giữa các thiết bị.
+Đây là cơ chế lớp học cục bộ trên GitHub Pages, tương tự `homework-PIS`; không phải hệ thống đăng nhập có máy chủ. Mã hồ sơ chỉ dùng để nhận diện dữ liệu trên thiết bị và dữ liệu không tự đồng bộ giữa các thiết bị.
 
-Không đưa file danh sách username/mật khẩu dạng rõ lên repository công khai.
+Không dùng GitHub Pages tĩnh để lưu mật khẩu hoặc dữ liệu bí mật.
