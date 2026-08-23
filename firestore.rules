@@ -1,3 +1,6 @@
+// Public fail-closed reference rules.
+// The answer-validating production rules are managed directly in Firebase Console
+// so the answer key is never exposed in this public repository.
 rules_version = '2';
 
 service cloud.firestore {
@@ -24,18 +27,13 @@ service cloud.firestore {
       allow read: if isTeacher()
         || (signedIn() && resource.data.uid == request.auth.uid);
 
+      // Unit 1.1 is denied here because its protected grading rule is private.
       allow create: if signedIn()
         && !isTeacher()
+        && request.resource.data.testId != "unit-1-1-vocab"
         && request.resource.data.keys().hasOnly([
-          "uid",
-          "studentId",
-          "testId",
-          "score",
-          "maxScore",
-          "durationSeconds",
-          "submittedAt",
-          "createdAt",
-          "details"
+          "uid", "studentId", "testId", "score", "maxScore",
+          "durationSeconds", "submittedAt", "createdAt", "details"
         ])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.studentId == ownStudentId()
@@ -52,6 +50,19 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
+    }
+
+    match /testReleases/{testId} {
+      allow read: if signedIn();
+      allow create, update: if isTeacher();
+      allow delete: if false;
+    }
+
+    // Production rules allow a student to read the unlock key only after both
+    // teacher release and that student's own submission. This public copy denies it.
+    match /testUnlocks/{testId} {
+      allow read: if isTeacher();
+      allow write: if false;
     }
 
     match /{document=**} {
