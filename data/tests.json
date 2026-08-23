@@ -1,3 +1,13 @@
 {
-  "tests": []
+  "tests": [
+    {
+      "id": "unit-1-1-vocab",
+      "title": "Unit 1.1 Vocabulary Test",
+      "description": "Meaning, spelling, and vocabulary in context",
+      "path": "tests/unit-1-1-vocab.html",
+      "points": 10,
+      "questions": 10,
+      "status": "available"
+    }
+  ]
 }
