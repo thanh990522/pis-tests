@@ -89,6 +89,7 @@
             <div class="profile-copy">
               <p class="section-kicker">STUDENT PROFILE</p>
               <h2 id="profile-name">—</h2><p id="profile-nickname">—</p>
+              <button class="secondary-button compact teacher-only" id="edit-profile-button" type="button">Edit student profile</button>
             </div>
             <div class="profile-stats" aria-label="Score summary">
               <div><strong id="profile-tests">0</strong><span>Tests completed</span></div>
@@ -112,6 +113,15 @@
               <p id="release-status">Answers are locked for students.</p>
             </div>
             <button class="primary-button compact" id="release-toggle" type="button">Release explanations</button>
+          </section>
+
+          <section class="proctor-card teacher-only" id="proctor-status-card" aria-labelledby="proctor-status-title">
+            <div class="proctor-icon" aria-hidden="true">⏱</div>
+            <div>
+              <p class="section-kicker">LIVE TEST MONITOR</p>
+              <h3 id="proctor-status-title">No active test session</h3>
+              <p id="proctor-status-content">When this student starts a test, the timer and fullscreen exits will appear here.</p>
+            </div>
           </section>
 
           <div class="tabs" role="tablist" aria-label="Profile information">
@@ -138,6 +148,26 @@
 
     <footer><span>PIS Tests · Viet Anh School</span><span>Firebase Authentication · Real-time Firestore sync</span></footer>
   </div>
+
+  <dialog class="dashboard-dialog" id="edit-profile-dialog">
+    <form method="dialog" class="dialog-card" id="edit-profile-form">
+      <div class="dialog-heading"><div><p class="section-kicker">STUDENT PROFILE</p><h2>Edit student details</h2></div><button class="icon-button" value="cancel" aria-label="Close dialog" type="submit">×</button></div>
+      <label>Full name<input id="edit-full-name" maxlength="100" required></label>
+      <label>Nickname<input id="edit-nickname" maxlength="50" placeholder="Optional"></label>
+      <p class="form-error" id="edit-profile-error" role="alert"></p>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel" type="submit">Cancel</button><button class="primary-button compact" id="save-profile-button" value="save" type="submit">Save changes</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="dashboard-dialog report-detail-dialog" id="report-detail-dialog">
+    <div class="dialog-card">
+      <div class="dialog-heading"><div><p class="section-kicker">DETAILED REPORT</p><h2 id="report-detail-title">Test report</h2></div><button class="icon-button" id="close-report-detail" aria-label="Close dialog" type="button">×</button></div>
+      <div id="report-detail-summary"></div>
+      <div id="report-detail-questions" class="report-detail-questions"></div>
+      <p class="form-error" id="report-detail-error" role="alert"></p>
+      <div class="dialog-actions"><button class="danger-button" id="delete-attempt-button" type="button">Delete attempt and allow retake</button><button class="secondary-button" id="done-report-detail" type="button">Done</button></div>
+    </div>
+  </dialog>
 
   <script type="module" src="assets/app.js"></script>
 </body>
