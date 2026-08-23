@@ -1,26 +1,40 @@
+import { auth, db, googleProvider } from "./firebase.js";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  where
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
 const DATA_URLS = {
   students: "data/students.json",
-  tests: "data/tests.json",
-  reports: "data/reports.json"
+  tests: "data/tests.json"
 };
 
-const STORAGE_KEYS = {
-  session: "pis_session_v1",
-  localReports: "pis_local_reports_v1",
-  importedReports: "pis_imported_reports_v1"
-};
+const TEACHER_EMAIL = "hachithanh2251999@gmail.com";
+const STUDENT_EMAIL_DOMAIN = "pis-tests.local";
 
 const state = {
   allStudents: [],
   students: [],
   tests: [],
-  staticReports: [],
   reports: [],
   selectedStudentId: null,
   activeTab: "reports",
   query: "",
   role: null,
-  session: null
+  session: null,
+  unsubscribeReports: null
 };
 
 const collator = new Intl.Collator("vi", { sensitivity: "base", numeric: true });
@@ -45,19 +59,13 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function readLocalArray(key) {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
+function initials(fullName) {
+  return fullName.trim().split(/\s+/).slice(-2).map(part => part[0]).join("").toUpperCase();
 }
 
 function validReport(report) {
   return Boolean(
     report &&
-    typeof report === "object" &&
     typeof report.studentId === "string" &&
     typeof report.testId === "string" &&
     Number.isFinite(Number(report.score)) &&
@@ -67,31 +75,9 @@ function validReport(report) {
   );
 }
 
-function uniqueReports(reports) {
-  const map = new Map();
-  reports.filter(validReport).forEach(report => {
-    const key = report.id || [report.studentId, report.testId, report.submittedAt, report.score, report.maxScore].join("|");
-    map.set(key, { ...report, id: report.id || key });
-  });
-  return [...map.values()];
-}
-
-function refreshReports() {
-  state.reports = uniqueReports([
-    ...state.staticReports,
-    ...readLocalArray(STORAGE_KEYS.localReports),
-    ...readLocalArray(STORAGE_KEYS.importedReports)
-  ]);
-}
-
-function initials(fullName) {
-  const parts = fullName.trim().split(/\s+/);
-  return parts.slice(-2).map(part => part[0]).join("").toUpperCase();
-}
-
 function studentReports(studentId) {
   return state.reports
-    .filter(report => report.studentId === studentId)
+    .filter(report => report.studentId === studentId && validReport(report))
     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 }
 
@@ -125,13 +111,18 @@ function statsFor(studentId) {
   };
 }
 
+function setSyncStatus(label, connected = true) {
+  const status = el("sync-status");
+  status.lastChild.textContent = ` ${label}`;
+  status.classList.toggle("offline", !connected);
+}
+
 function renderStudentList() {
   const list = el("student-list");
-  const query = normalizeText(state.query.trim());
-  const filtered = state.students.filter(student => {
-    const haystack = normalizeText(`${student.fullName} ${student.nickname || ""}`);
-    return haystack.includes(query);
-  });
+  const queryText = normalizeText(state.query.trim());
+  const filtered = state.students.filter(student =>
+    normalizeText(`${student.fullName} ${student.nickname || ""}`).includes(queryText)
+  );
 
   list.replaceChildren();
   if (!filtered.length) {
@@ -146,7 +137,6 @@ function renderStudentList() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `student-button${student.id === state.selectedStudentId ? " active" : ""}`;
-    button.dataset.studentId = student.id;
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", String(student.id === state.selectedStudentId));
     button.innerHTML = `
@@ -163,7 +153,7 @@ function renderStudentList() {
 }
 
 function selectStudent(studentId) {
-  if (state.role === "student" && studentId !== state.session.studentId) return;
+  if (state.role === "student" && studentId !== state.session?.studentId) return;
   state.selectedStudentId = studentId;
   renderStudentList();
   renderProfile();
@@ -173,7 +163,6 @@ function selectStudent(studentId) {
 function renderProfile() {
   const student = state.allStudents.find(item => item.id === state.selectedStudentId);
   if (!student) return;
-
   const stats = statsFor(student.id);
   el("profile-avatar").textContent = initials(student.fullName);
   el("profile-name").textContent = student.fullName;
@@ -186,48 +175,35 @@ function renderProfile() {
 }
 
 function emptyState(icon, title, description) {
-  return `
-    <div class="empty-state">
-      <div>
-        <span class="empty-icon" aria-hidden="true">${icon}</span>
-        <h4>${title}</h4>
-        <p>${description}</p>
-      </div>
-    </div>
-  `;
+  return `<div class="empty-state"><div><span class="empty-icon" aria-hidden="true">${icon}</span><h4>${title}</h4><p>${description}</p></div></div>`;
 }
 
 function renderReports(studentId) {
   const reports = studentReports(studentId);
   const container = el("reports-content");
   if (!reports.length) {
-    container.innerHTML = emptyState("✓", "Chưa có báo cáo bài test", "Hồ sơ đã sẵn sàng. Khi một bài test được tạo và học sinh nộp bài, báo cáo chi tiết sẽ xuất hiện tại đây.");
+    container.innerHTML = emptyState("✓", "Chưa có báo cáo bài test", "Khi học sinh nộp bài, báo cáo sẽ tự động xuất hiện tại đây.");
     return;
   }
 
   container.innerHTML = `
-    <div class="report-table-wrap">
-      <table class="report-table">
-        <thead><tr><th>Bài test</th><th>Điểm</th><th>Tỉ lệ</th><th>Thời gian làm</th><th>Ngày nộp</th></tr></thead>
-        <tbody>${reports.map(report => `
-          <tr>
-            <td><strong>${escapeHtml(testName(report.testId))}</strong></td>
-            <td><span class="score-chip">${formatScore(report)}</span></td>
-            <td>${percent(report)}%</td>
-            <td>${formatDuration(report.durationSeconds)}</td>
-            <td>${dateFormatter.format(new Date(report.submittedAt))}</td>
-          </tr>
-        `).join("")}</tbody>
-      </table>
-    </div>
-  `;
+    <div class="report-table-wrap"><table class="report-table">
+      <thead><tr><th>Bài test</th><th>Điểm</th><th>Tỉ lệ</th><th>Thời gian làm</th><th>Ngày nộp</th></tr></thead>
+      <tbody>${reports.map(report => `<tr>
+        <td><strong>${escapeHtml(testName(report.testId))}</strong></td>
+        <td><span class="score-chip">${formatScore(report)}</span></td>
+        <td>${percent(report)}%</td>
+        <td>${formatDuration(report.durationSeconds)}</td>
+        <td>${dateFormatter.format(new Date(report.submittedAt))}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
 }
 
 function renderTotals(studentId) {
   const reports = studentReports(studentId);
   const container = el("total-content");
   if (!reports.length) {
-    container.innerHTML = emptyState("∑", "Chưa có điểm để tổng hợp", "Tab này sẽ tự động tính số bài đã hoàn thành, điểm trung bình và kết quả cao nhất sau khi có dữ liệu bài test.");
+    container.innerHTML = emptyState("∑", "Chưa có điểm để tổng hợp", "Tab này tự tính kết quả tốt nhất của từng bài sau khi có bài nộp.");
     return;
   }
 
@@ -247,20 +223,15 @@ function renderTotals(studentId) {
       <div class="summary-card"><span>Điểm trung bình</span><strong>${average}%</strong></div>
       <div class="summary-card"><span>Tổng điểm tốt nhất</span><strong>${totalScore}/${totalMax}</strong></div>
     </div>
-    <div class="report-table-wrap">
-      <table class="report-table">
-        <thead><tr><th>Bài test</th><th>Điểm tốt nhất</th><th>Tỉ lệ</th><th>Số lần làm</th></tr></thead>
-        <tbody>${bestReports.map(report => `
-          <tr>
-            <td><strong>${escapeHtml(testName(report.testId))}</strong></td>
-            <td><span class="score-chip">${formatScore(report)}</span></td>
-            <td>${percent(report)}%</td>
-            <td>${reports.filter(item => item.testId === report.testId).length}</td>
-          </tr>
-        `).join("")}</tbody>
-      </table>
-    </div>
-  `;
+    <div class="report-table-wrap"><table class="report-table">
+      <thead><tr><th>Bài test</th><th>Điểm tốt nhất</th><th>Tỉ lệ</th><th>Số lần làm</th></tr></thead>
+      <tbody>${bestReports.map(report => `<tr>
+        <td><strong>${escapeHtml(testName(report.testId))}</strong></td>
+        <td><span class="score-chip">${formatScore(report)}</span></td>
+        <td>${percent(report)}%</td>
+        <td>${reports.filter(item => item.testId === report.testId).length}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
 }
 
 function bindTabs() {
@@ -288,44 +259,91 @@ function setLoginTab(tabName) {
   el("teacher-login-form").hidden = tabName !== "teacher";
 }
 
-function handleStudentLogin(event) {
-  event.preventDefault();
-  const error = el("student-login-error");
-  const profileCode = el("student-username").value.trim().toLowerCase();
-  const student = state.allStudents.find(item => item.id.toLowerCase() === profileCode);
-  if (!student) {
-    error.textContent = "Mã hồ sơ chưa đúng. Ví dụ: pis-001.";
-    return;
-  }
-  error.textContent = "";
-  startSession({ role: "student", studentId: student.id });
+function authMessage(error) {
+  const code = error?.code || "";
+  if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(code)) return "Username hoặc mật khẩu chưa đúng.";
+  if (code === "auth/too-many-requests") return "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.";
+  if (code === "auth/popup-closed-by-user") return "Cửa sổ Google đã đóng trước khi đăng nhập xong.";
+  if (code === "auth/unauthorized-domain") return "Tên miền GitHub Pages chưa được cấp quyền trong Firebase.";
+  return "Chưa thể đăng nhập. Vui lòng thử lại.";
 }
 
-function handleTeacherLogin(event) {
+async function handleStudentLogin(event) {
   event.preventDefault();
-  startSession({ role: "teacher" });
+  const errorEl = el("student-login-error");
+  const username = el("student-username").value.trim().toLowerCase();
+  const password = el("student-password").value;
+  if (!/^[a-z0-9._-]+$/.test(username)) {
+    errorEl.textContent = "Username chỉ gồm chữ thường, số, dấu chấm, gạch ngang hoặc gạch dưới.";
+    return;
+  }
+  errorEl.textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, `${username}@${STUDENT_EMAIL_DOMAIN}`, password);
+  } catch (error) {
+    errorEl.textContent = authMessage(error);
+  }
+}
+
+async function handleTeacherLogin(event) {
+  event.preventDefault();
+  el("teacher-login-error").textContent = "";
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    el("teacher-login-error").textContent = authMessage(error);
+  }
 }
 
 function bindAuth() {
   document.querySelectorAll("[data-login-tab]").forEach(button => button.addEventListener("click", () => setLoginTab(button.dataset.loginTab)));
   el("student-login-form").addEventListener("submit", handleStudentLogin);
   el("teacher-login-form").addEventListener("submit", handleTeacherLogin);
-  el("logout-button").addEventListener("click", logout);
+  el("logout-button").addEventListener("click", () => signOut(auth));
 }
 
-function startSession(session) {
+function showLogin() {
+  state.unsubscribeReports?.();
+  state.unsubscribeReports = null;
+  state.session = null;
+  state.role = null;
+  state.reports = [];
+  document.body.classList.remove("student-mode", "teacher-mode");
+  el("app-shell").hidden = true;
+  el("login-shell").hidden = false;
+  history.replaceState(null, "", location.pathname);
+}
+
+function startReportListener(user) {
+  state.unsubscribeReports?.();
+  const reportsRef = collection(db, "reports");
+  const reportsQuery = state.role === "teacher" ? reportsRef : query(reportsRef, where("uid", "==", user.uid));
+  state.unsubscribeReports = onSnapshot(reportsQuery, snapshot => {
+    state.reports = snapshot.docs.map(reportDoc => {
+      const data = reportDoc.data();
+      const submittedAt = data.submittedAt?.toDate ? data.submittedAt.toDate().toISOString() : data.submittedAt;
+      return { id: reportDoc.id, ...data, submittedAt };
+    });
+    setSyncStatus("Đã đồng bộ Firebase", true);
+    renderProfile();
+  }, error => {
+    console.error(error);
+    setSyncStatus("Mất kết nối Firebase", false);
+  });
+}
+
+function openApp(user, session) {
   state.session = session;
   state.role = session.role;
-  sessionStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
   document.body.classList.toggle("student-mode", session.role === "student");
   document.body.classList.toggle("teacher-mode", session.role === "teacher");
   el("login-shell").hidden = true;
   el("app-shell").hidden = false;
+  state.students = [...state.allStudents];
 
-  state.students = [...state.allStudents].sort((a, b) => collator.compare(a.fullName, b.fullName));
   if (session.role === "student") {
     const student = state.allStudents.find(item => item.id === session.studentId);
-    if (!student) return logout();
+    if (!student) throw new Error("Hồ sơ học sinh không tồn tại.");
     state.selectedStudentId = student.id;
     el("session-label").textContent = student.nickname || student.fullName;
     el("student-count").textContent = "1";
@@ -337,152 +355,49 @@ function startSession(session) {
     el("student-count").textContent = state.students.length;
     el("hero-student-count").textContent = state.students.length;
   }
+
   renderStudentList();
   renderProfile();
   el("loading-state").hidden = true;
   el("profile-content").hidden = false;
+  startReportListener(user);
 }
 
-function logout() {
-  sessionStorage.removeItem(STORAGE_KEYS.session);
-  state.session = null;
-  state.role = null;
-  document.body.classList.remove("student-mode", "teacher-mode");
-  el("app-shell").hidden = true;
-  el("login-shell").hidden = false;
-  history.replaceState(null, "", location.pathname);
-}
-
-function restoreSession() {
-  try {
-    const session = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.session) || "null");
-    if (session?.role === "teacher") return startSession(session);
-    if (session?.role === "student" && state.allStudents.some(student => student.id === session.studentId)) return startSession(session);
-  } catch {}
-  logout();
-}
-
-function encodeSubmission(value) {
-  const bytes = new TextEncoder().encode(JSON.stringify(value));
-  let binary = "";
-  bytes.forEach(byte => { binary += String.fromCharCode(byte); });
-  return btoa(binary);
-}
-
-function decodeSubmission(value) {
-  const binary = atob(value.trim());
-  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-  return JSON.parse(new TextDecoder().decode(bytes));
-}
-
-function submissionPayload(studentId) {
-  return {
-    schema: "pis-tests-submission-v1",
-    studentId,
-    exportedAt: new Date().toISOString(),
-    reports: studentReports(studentId)
-  };
-}
-
-function reportsFromPayload(payload) {
-  if (Array.isArray(payload)) return payload.filter(validReport);
-  if (payload?.schema === "pis-tests-submission-v1" && Array.isArray(payload.reports)) {
-    return payload.reports.filter(report => validReport(report) && report.studentId === payload.studentId);
+async function resolveSession(user) {
+  if (user.email?.toLowerCase() === TEACHER_EMAIL) return { role: "teacher" };
+  const profileSnapshot = await getDoc(doc(db, "users", user.uid));
+  if (!profileSnapshot.exists()) throw new Error("Tài khoản chưa được liên kết với hồ sơ học sinh.");
+  const profile = profileSnapshot.data();
+  if (profile.role !== "student" || !state.allStudents.some(student => student.id === profile.studentId)) {
+    throw new Error("Hồ sơ học sinh chưa hợp lệ.");
   }
-  if (validReport(payload)) return [payload];
-  return [];
+  return { role: "student", studentId: profile.studentId };
 }
 
-function saveImportedReports(reports) {
-  const merged = uniqueReports([...readLocalArray(STORAGE_KEYS.importedReports), ...reports]);
-  localStorage.setItem(STORAGE_KEYS.importedReports, JSON.stringify(merged));
-  refreshReports();
-  renderProfile();
-  el("import-status").textContent = `Đã lưu ${merged.length} báo cáo được nhập trên thiết bị này.`;
-}
-
-function bindHandoff() {
-  el("make-code-button").addEventListener("click", () => {
-    const payload = submissionPayload(state.session.studentId);
-    el("submission-code").value = encodeSubmission(payload);
-    el("submission-code-box").hidden = false;
-  });
-
-  el("copy-code-button").addEventListener("click", async () => {
-    const textarea = el("submission-code");
-    try {
-      await navigator.clipboard.writeText(textarea.value);
-      el("copy-code-button").textContent = "Đã sao chép";
-      setTimeout(() => { el("copy-code-button").textContent = "Sao chép mã"; }, 1500);
-    } catch {
-      textarea.select();
-      document.execCommand("copy");
-    }
-  });
-
-  el("download-results-button").addEventListener("click", () => {
-    const payload = submissionPayload(state.session.studentId);
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
-    link.download = `PIS_${state.session.studentId}_ket-qua.json`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  });
-
-  el("import-code-button").addEventListener("click", () => {
-    const codes = el("result-code-input").value.split(/\s+/).filter(Boolean);
-    const reports = [];
-    codes.forEach(code => {
-      try { reports.push(...reportsFromPayload(decodeSubmission(code))); } catch {}
-    });
-    if (!reports.length) {
-      el("import-status").textContent = "Không đọc được báo cáo hợp lệ nào từ mã đã nhập.";
-      return;
-    }
-    saveImportedReports(reports);
-    el("result-code-input").value = "";
-  });
-
-  el("result-file-input").addEventListener("change", async event => {
-    const reports = [];
-    for (const file of event.target.files) {
-      try { reports.push(...reportsFromPayload(JSON.parse(await file.text()))); } catch {}
-    }
-    if (reports.length) saveImportedReports(reports);
-    else el("import-status").textContent = "Không tìm thấy báo cáo hợp lệ trong file.";
-    event.target.value = "";
-  });
-
-  el("clear-imported-button").addEventListener("click", () => {
-    if (!confirm("Xóa toàn bộ kết quả đã nhập trên thiết bị này?")) return;
-    localStorage.removeItem(STORAGE_KEYS.importedReports);
-    refreshReports();
-    renderProfile();
-    el("import-status").textContent = "Đã xóa dữ liệu nhập trên thiết bị này.";
-  });
-}
-
-function recordReport(payload) {
-  if (state.role !== "student" || !state.session?.studentId) throw new Error("Học sinh cần đăng nhập trước khi nộp bài.");
+async function recordReport(payload) {
+  if (state.role !== "student" || !state.session?.studentId || !auth.currentUser) {
+    throw new Error("Học sinh cần đăng nhập trước khi nộp bài.");
+  }
   const report = {
-    id: payload.id || `${state.session.studentId}-${payload.testId}-${Date.now()}`,
+    uid: auth.currentUser.uid,
     studentId: state.session.studentId,
     testId: String(payload.testId || ""),
     score: Number(payload.score),
     maxScore: Number(payload.maxScore),
     durationSeconds: Number(payload.durationSeconds || 0),
     submittedAt: payload.submittedAt || new Date().toISOString(),
+    createdAt: serverTimestamp(),
     details: payload.details || null
   };
   if (!validReport(report)) throw new Error("Dữ liệu kết quả chưa hợp lệ.");
-  const merged = uniqueReports([...readLocalArray(STORAGE_KEYS.localReports), report]);
-  localStorage.setItem(STORAGE_KEYS.localReports, JSON.stringify(merged));
-  refreshReports();
-  renderProfile();
-  return report;
+  const result = await addDoc(collection(db, "reports"), report);
+  return { id: result.id, ...report };
 }
 
-window.PISTracker = Object.freeze({ recordReport, currentStudentId: () => state.session?.studentId || null });
+window.PISTracker = Object.freeze({
+  recordReport,
+  currentStudentId: () => state.session?.studentId || null
+});
 
 async function loadJson(url) {
   const response = await fetch(url, { cache: "no-store" });
@@ -493,23 +408,26 @@ async function loadJson(url) {
 async function init() {
   bindAuth();
   bindTabs();
-  bindHandoff();
   el("student-search").addEventListener("input", event => {
     state.query = event.target.value;
     renderStudentList();
   });
 
   try {
-    const [studentData, testData, reportData] = await Promise.all([
-      loadJson(DATA_URLS.students),
-      loadJson(DATA_URLS.tests),
-      loadJson(DATA_URLS.reports)
-    ]);
+    const [studentData, testData] = await Promise.all([loadJson(DATA_URLS.students), loadJson(DATA_URLS.tests)]);
     state.allStudents = [...studentData.students].sort((a, b) => collator.compare(a.fullName, b.fullName));
     state.tests = testData.tests || [];
-    state.staticReports = reportData.reports || [];
-    refreshReports();
-    restoreSession();
+    onAuthStateChanged(auth, async user => {
+      if (!user) return showLogin();
+      try {
+        const session = await resolveSession(user);
+        openApp(user, session);
+      } catch (error) {
+        console.error(error);
+        await signOut(auth);
+        el("student-login-error").textContent = error.message;
+      }
+    });
   } catch (error) {
     console.error(error);
     el("login-shell").hidden = true;
