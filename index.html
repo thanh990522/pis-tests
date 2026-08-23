@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PIS Tests — theo dõi bài kiểm tra và tiến độ theo từng học sinh.">
+  <meta name="description" content="PIS Tests — student assessments and progress tracking for Viet Anh School.">
   <meta name="theme-color" content="#073b4c">
-  <title>PIS Tests | Student Progress Tracker</title>
+  <title>PIS Tests | Viet Anh School</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,151 +18,125 @@
         <span class="brand-mark" aria-hidden="true">P</span>
         <div>
           <p class="section-kicker">VIET ANH SCHOOL · LEVEL PIS</p>
-          <h1 id="login-title">Đăng nhập PIS Tests</h1>
-          <p>Kết quả được đồng bộ tự động lên Firebase và xuất hiện trên dashboard giáo viên.</p>
+          <h1 id="login-title">Welcome to PIS Tests</h1>
+          <p>Sign in to take an assessment or view real-time class progress.</p>
         </div>
       </div>
 
-      <div class="login-tabs" role="tablist" aria-label="Chọn loại tài khoản">
-        <button class="login-tab active" type="button" role="tab" aria-selected="true" data-login-tab="student">🎒 Học sinh</button>
-        <button class="login-tab" type="button" role="tab" aria-selected="false" data-login-tab="teacher">👩‍🏫 Giáo viên</button>
+      <div class="login-tabs" role="tablist" aria-label="Choose an account type">
+        <button class="login-tab active" type="button" role="tab" aria-selected="true" data-login-tab="student">🎒 Student</button>
+        <button class="login-tab" type="button" role="tab" aria-selected="false" data-login-tab="teacher">👨‍🏫 Teacher</button>
       </div>
 
       <form class="login-form" id="student-login-form">
-        <label>Username<input id="student-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ví dụ: pis.zio"></label>
-        <label>Mật khẩu<input id="student-password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu"></label>
-        <button class="primary-button" type="submit">Đăng nhập để làm bài</button>
+        <label>Username<input id="student-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="For example: pis.zio"></label>
+        <label>Password<input id="student-password" type="password" autocomplete="current-password" required placeholder="Enter your password"></label>
+        <button class="primary-button" type="submit">Sign in to take a test</button>
         <p class="form-error" id="student-login-error" role="alert"></p>
       </form>
 
       <form class="login-form" id="teacher-login-form" hidden>
-        <p class="role-copy">Dùng tài khoản Google giáo viên đã được cấp quyền để xem dữ liệu toàn lớp.</p>
-        <button class="primary-button" type="submit">Đăng nhập bằng Google</button>
+        <p class="role-copy">Use the authorized teacher Google account to view the whole class.</p>
+        <button class="primary-button" type="submit">Continue with Google</button>
         <p class="form-error" id="teacher-login-error" role="alert"></p>
       </form>
 
-      <p class="local-note"><strong>Firebase:</strong> bài nộp được đồng bộ theo thời gian thực giữa thiết bị học sinh và giáo viên.</p>
+      <p class="local-note"><strong>Live sync:</strong> submitted results appear automatically on the teacher dashboard.</p>
     </section>
   </main>
 
   <div class="app-shell" id="app-shell" hidden>
     <header class="topbar">
-      <a class="brand" href="#" aria-label="PIS Tests trang chủ">
+      <a class="brand" href="./" aria-label="PIS Tests home">
         <span class="brand-mark" aria-hidden="true">P</span>
-        <span>
-          <strong>PIS Tests</strong>
-          <small>Student Progress Tracker</small>
-        </span>
+        <span><strong>PIS Tests</strong><small>Viet Anh School · Level PIS</small></span>
       </a>
       <div class="topbar-meta">
-        <span class="status-pill" id="sync-status"><i></i> Đang kết nối Firebase</span>
+        <span class="status-pill" id="sync-status"><i></i> Connecting to Firebase</span>
         <span class="teacher-pill" id="session-label">—</span>
-        <button class="logout-button" id="logout-button" type="button">Đăng xuất</button>
+        <button class="logout-button" id="logout-button" type="button">Sign out</button>
       </div>
     </header>
 
     <section class="hero" aria-labelledby="page-title">
       <div>
-        <p class="eyebrow">PIS CLASS · TEST MANAGEMENT</p>
-        <h1 id="page-title">Theo dõi tiến độ theo từng học sinh</h1>
-        <p>Chọn một học sinh để xem toàn bộ báo cáo bài test và bảng tổng điểm cá nhân.</p>
+        <p class="eyebrow">VIET ANH SCHOOL · LEVEL PIS</p>
+        <h1 id="page-title">Learning progress, beautifully organized.</h1>
+        <p>Teacher: Mr. Hà Chí Thanh · Individual test reports and overall scores in one place.</p>
       </div>
-      <div class="hero-badge" aria-hidden="true">
-        <span id="hero-student-count">0</span>
-        <small>học sinh</small>
-      </div>
+      <div class="hero-badge" aria-hidden="true"><span id="hero-student-count">0</span><small>students</small></div>
     </section>
 
     <main class="workspace">
-      <aside class="student-panel" aria-label="Danh sách học sinh">
+      <aside class="student-panel" aria-label="Student list">
         <div class="panel-heading">
-          <div>
-            <p class="section-kicker">DANH SÁCH A–Z</p>
-            <h2>Học sinh</h2>
-          </div>
+          <div><p class="section-kicker">A–Z DIRECTORY</p><h2>Students</h2></div>
           <span class="count-badge" id="student-count">0</span>
         </div>
-
         <label class="search-box">
-          <span aria-hidden="true">⌕</span>
-          <span class="sr-only">Tìm học sinh</span>
-          <input id="student-search" type="search" placeholder="Tìm tên hoặc nickname…" autocomplete="off">
+          <span aria-hidden="true">⌕</span><span class="sr-only">Find a student</span>
+          <input id="student-search" type="search" placeholder="Find a name or nickname…" autocomplete="off">
         </label>
-
-        <div id="student-list" class="student-list" role="listbox" aria-label="Chọn học sinh"></div>
+        <div id="student-list" class="student-list" role="listbox" aria-label="Choose a student"></div>
       </aside>
 
       <section class="profile-panel" aria-live="polite">
-        <div id="loading-state" class="loading-state">
-          <span class="loader" aria-hidden="true"></span>
-          <p>Đang tải dữ liệu lớp…</p>
-        </div>
+        <div id="loading-state" class="loading-state"><span class="loader" aria-hidden="true"></span><p>Loading class data…</p></div>
 
         <div id="profile-content" hidden>
           <div class="profile-header">
             <div class="profile-avatar" id="profile-avatar" aria-hidden="true">PIS</div>
             <div class="profile-copy">
-              <p class="section-kicker">HỒ SƠ HỌC SINH</p>
-              <h2 id="profile-name">—</h2>
-              <p id="profile-nickname">—</p>
+              <p class="section-kicker">STUDENT PROFILE</p>
+              <h2 id="profile-name">—</h2><p id="profile-nickname">—</p>
             </div>
-            <div class="profile-stats" aria-label="Tóm tắt kết quả">
-              <div><strong id="profile-tests">0</strong><span>Bài đã làm</span></div>
-              <div><strong id="profile-average">—</strong><span>Điểm TB</span></div>
-              <div><strong id="profile-best">—</strong><span>Cao nhất</span></div>
+            <div class="profile-stats" aria-label="Score summary">
+              <div><strong id="profile-tests">0</strong><span>Tests completed</span></div>
+              <div><strong id="profile-average">—</strong><span>Average</span></div>
+              <div><strong id="profile-best">—</strong><span>Best score</span></div>
             </div>
           </div>
 
-          <section class="handoff-card student-only" aria-labelledby="handoff-title">
-            <div>
-              <p class="section-kicker">TỰ ĐỘNG ĐỒNG BỘ</p>
-              <h3 id="handoff-title">Kết quả được gửi ngay khi nộp bài</h3>
-              <p>Không cần tạo mã hoặc gửi file. Report mới sẽ tự xuất hiện trên dashboard giáo viên.</p>
+          <section class="test-library student-only" aria-labelledby="available-tests-title">
+            <div class="content-heading">
+              <div><p class="section-kicker">ASSESSMENTS</p><h3 id="available-tests-title">Available tests</h3><p>Submit once. Your score appears immediately and syncs with your teacher.</p></div>
             </div>
+            <div id="available-tests" class="test-grid"></div>
           </section>
 
-          <div class="tabs" role="tablist" aria-label="Thông tin hồ sơ">
-            <button id="tab-reports" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="reports-panel" data-tab="reports">
-              Báo cáo từng bài test
-            </button>
-            <button id="tab-total" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="total-panel" data-tab="total">
-              Tổng điểm tất cả bài
-            </button>
+          <section class="release-card teacher-only" aria-labelledby="release-title">
+            <div class="release-icon" aria-hidden="true">🔐</div>
+            <div>
+              <p class="section-kicker">ANSWER CONTROL</p>
+              <h3 id="release-title">Unit 1.1 answer explanations</h3>
+              <p id="release-status">Answers are locked for students.</p>
+            </div>
+            <button class="primary-button compact" id="release-toggle" type="button">Release explanations</button>
+          </section>
+
+          <div class="tabs" role="tablist" aria-label="Profile information">
+            <button id="tab-reports" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="reports-panel" data-tab="reports">Test reports</button>
+            <button id="tab-total" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="total-panel" data-tab="total">Overall score</button>
           </div>
 
           <section id="reports-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-reports">
-            <div class="content-heading">
-              <div>
-                <h3>Lịch sử làm bài</h3>
-                <p>Tất cả các lần nộp bài sẽ được sắp xếp từ mới nhất đến cũ nhất.</p>
-              </div>
-            </div>
+            <div class="content-heading"><div><h3>Submission history</h3><p>Every submitted test is listed from newest to oldest.</p></div></div>
             <div id="reports-content"></div>
           </section>
 
           <section id="total-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-total" hidden>
-            <div class="content-heading">
-              <div>
-                <h3>Bảng tổng điểm</h3>
-                <p>Tổng hợp kết quả cao nhất của từng bài test trong hồ sơ.</p>
-              </div>
-            </div>
+            <div class="content-heading"><div><h3>Overall score</h3><p>The best result from each test is included in this summary.</p></div></div>
             <div id="total-content"></div>
           </section>
         </div>
 
         <div id="error-state" class="error-state" hidden>
-          <span aria-hidden="true">!</span>
-          <h2>Không thể tải dữ liệu</h2>
-          <p>Vui lòng tải lại trang hoặc kiểm tra các tệp dữ liệu trong repository.</p>
+          <span aria-hidden="true">!</span><h2>We could not load the data</h2><p>Please refresh the page or contact the teacher.</p>
         </div>
       </section>
     </main>
 
-    <footer>
-      <span>PIS Tests · Teacher Dashboard</span>
-      <span>Firebase Authentication · Firestore realtime sync</span>
-    </footer>
+    <footer><span>PIS Tests · Viet Anh School</span><span>Firebase Authentication · Real-time Firestore sync</span></footer>
   </div>
 
   <script type="module" src="assets/app.js"></script>
