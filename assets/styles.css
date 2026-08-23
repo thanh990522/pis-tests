@@ -187,6 +187,11 @@ button { color: inherit; }
   box-shadow: 0 0 0 4px rgba(29, 191, 120, .12);
 }
 
+.status-pill.offline i {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgba(197, 59, 82, .12);
+}
+
 .hero {
   position: relative;
   isolation: isolate;
