@@ -29,16 +29,14 @@
       </div>
 
       <form class="login-form" id="student-login-form">
-        <label>Tên đăng nhập<input id="student-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ví dụ: pis.zio"></label>
-        <label>Mật khẩu<input id="student-password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu"></label>
-        <button class="primary-button" type="submit">Đăng nhập để làm bài</button>
+        <label>Mã hồ sơ<input id="student-username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ví dụ: pis-001"></label>
+        <button class="primary-button" type="submit">Mở hồ sơ để làm bài</button>
         <p class="form-error" id="student-login-error" role="alert"></p>
       </form>
 
       <form class="login-form" id="teacher-login-form" hidden>
-        <label>Mã giáo viên<input id="teacher-password" type="password" autocomplete="current-password" required placeholder="Nhập mã giáo viên"></label>
+        <p class="role-copy">Dashboard chỉ tổng hợp dữ liệu đang lưu hoặc đã được nhập trên trình duyệt này.</p>
         <button class="primary-button" type="submit">Mở dashboard giáo viên</button>
-        <p class="form-error" id="teacher-login-error" role="alert"></p>
       </form>
 
       <p class="local-note"><strong>Chế độ cục bộ:</strong> giống `homework-PIS`, dữ liệu không tự đồng bộ giữa các thiết bị.</p>
