@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return signedIn()
+        && request.auth.token.email == "hachithanh2251999@gmail.com";
+    }
+
+    function ownStudentId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.studentId;
+    }
+
+    match /users/{uid} {
+      allow read: if isTeacher() || (signedIn() && request.auth.uid == uid);
+      allow write: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if isTeacher()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && !isTeacher()
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "studentId",
+          "testId",
+          "score",
+          "maxScore",
+          "durationSeconds",
+          "submittedAt",
+          "createdAt",
+          "details"
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.studentId == ownStudentId()
+        && request.resource.data.testId is string
+        && request.resource.data.testId.size() > 0
+        && request.resource.data.score is number
+        && request.resource.data.maxScore is number
+        && request.resource.data.score >= 0
+        && request.resource.data.maxScore > 0
+        && request.resource.data.score <= request.resource.data.maxScore
+        && request.resource.data.durationSeconds is number
+        && request.resource.data.durationSeconds >= 0
+        && request.resource.data.submittedAt is string
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
